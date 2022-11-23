@@ -9,6 +9,7 @@
         {
             Name = name;
             Status = status;
+            
         }
     }
 }
