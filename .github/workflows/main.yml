@@ -18,6 +18,15 @@ jobs:
         - name: Test
           run: dotnet test
 
+        - name: actions/deploy-pages@v1
+          with:
+            emit_telemetry: false
+            timeout: 600000
+            error_count: 10
+            reporting_interval: 5000
+            artifact_name: github-pages
+            preview: false
+            
         # Generate the website
         - name: Publish
           run: dotnet publish ./Blazor_Board/Blazor_Board.csproj --configuration Release
@@ -27,7 +36,6 @@ jobs:
           if: ${{ github.ref == 'refs/heads/main' }} # Publish only when the push is on master
           uses: peaceiris/actions-gh-pages@v3.6.1
           with:
-            emit_telemerry: false
             github_token: ${{ secrets.PUBLISH_TOKEN }}
             publish_branch: gh-pages
             publish_dir: Blazor_Board/bin/Release/net6.0/publish/wwwroot
