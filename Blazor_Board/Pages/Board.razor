@@ -1,7 +1,8 @@
 ﻿@page "/Board"
-
 @using Microsoft.AspNetCore.Components
 @using System.ComponentModel.DataAnnotations
+@inject ISectionService sectionService;
+
 
 <MudDropContainer T="KanbanTaskItem" @ref="_dropContainer" Items="@_tasks" ItemsSelector="@((item,column) => item.Status == column)" ItemDropped="TaskUpdated" Class="d-flex flex-row">
 	<ChildContent>
@@ -72,9 +73,6 @@
 			new KanbanSection("Done", false, String.Empty),
 	};
 
-	
-	
-
 	private List<KanbanTaskItem> _tasks = new()
 		{
 			new KanbanTaskItem("Write unit test", "To Do"),
@@ -82,6 +80,14 @@
 			new KanbanTaskItem("Walking the dog", "To Do"),
 		};
 
+
+	protected override async Task OnInitializedAsync()
+	{
+		//var test1 = await httpClient.GetAsync("http://10.108.137.56:5004/kanban/GetKanban");
+
+		var test = await sectionService.GetSections();
+
+	}
 	/* handling board events */
 	private void TaskUpdated(MudItemDropInfo<KanbanTaskItem> info)
 	{
