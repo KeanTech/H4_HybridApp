@@ -152,23 +152,6 @@ namespace BlazorBoard_Api.DataAccess
 		#endregion
 	}
 
-	[Table(Schema="dbo", Name="Priority")]
-	public partial class Priority
-	{
-		[PrimaryKey, Identity] public int    Id   { get; set; } // int
-		[Column,     Nullable] public string Name { get; set; } // varchar(25)
-
-		#region Associations
-
-		/// <summary>
-		/// FK__BoardTask__Statu__2F10007B_BackReference (dbo.BoardTask)
-		/// </summary>
-		[Association(ThisKey="Id", OtherKey="StatusId", CanBeNull=true)]
-		public IEnumerable<BoardTask> BoardTaskStatus { get; set; }
-
-		#endregion
-	}
-
 	public static partial class TableExtensions
 	{
 		public static BoardTask Find(this ITable<BoardTask> table, int Id)
@@ -190,12 +173,6 @@ namespace BlazorBoard_Api.DataAccess
 		}
 
 		public static Section Find(this ITable<Section> table, int Id)
-		{
-			return table.FirstOrDefault(t =>
-				t.Id == Id);
-		}
-
-		public static Priority Find(this ITable<Priority> table, int Id)
 		{
 			return table.FirstOrDefault(t =>
 				t.Id == Id);

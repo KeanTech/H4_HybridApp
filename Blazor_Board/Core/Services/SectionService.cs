@@ -33,7 +33,7 @@ namespace Blazor_Board.Core.Services
             
             try
             {
-                var message = await _client.GetFromJsonAsync<List<Section>>("Get");
+                var message = await _client.GetFromJsonAsync<List<Section>>("Section/Get");
                 
                 if(message != null)
                     return message;

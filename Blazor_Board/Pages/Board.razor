@@ -64,9 +64,9 @@
 	KanbanForm newSectionModel = new KanbanForm();
 	private bool _addSectionOpen;
 
-
+	private List<Section> _sections = new List<Section>();
 	/* Setup for board  */
-	private List<KanbanSection> _sections = new()
+	private List<KanbanSection> _Kansections = new()
 	{
 			new KanbanSection("To Do", false, String.Empty),
 			new KanbanSection("In Process", false, String.Empty),
@@ -83,9 +83,7 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		//var test1 = await httpClient.GetAsync("http://10.108.137.56:5004/kanban/GetKanban");
-
-		var test = await sectionService.GetSections();
+		_sections = await sectionService.GetSections();
 
 	}
 	/* handling board events */
@@ -96,7 +94,8 @@
 
 	private void OnValidSectionSubmit(EditContext context)
 	{
-		_sections.Add(new KanbanSection(newSectionModel.Name, false, String.Empty));
+
+		_sections.Add(new Section() { Name = newSectionModel.Name, NewTaskOpen = false, NewTaskName = String.Empty });
 		newSectionModel.Name = string.Empty;
 		_addSectionOpen = false;
 	}
@@ -106,7 +105,7 @@
 		_addSectionOpen = true;
 	}
 
-	private void AddTask(KanbanSection section)
+	private void AddTask(Section section)
 	{
 		_tasks.Add(new KanbanTaskItem(section.NewTaskName, section.Name));
 		section.NewTaskName = string.Empty;
@@ -116,7 +115,7 @@
 			_dropContainer.Refresh();
 	}
 
-	private void DeleteSection(KanbanSection section)
+	private void DeleteSection(Section section)
 	{
 		if (_sections.Count == 1)
 		{

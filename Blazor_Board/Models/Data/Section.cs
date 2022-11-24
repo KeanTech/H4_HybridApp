@@ -7,6 +7,8 @@
         public int? ProjectBoardId { get; set; }
         public IEnumerable<BoardTask> BoardTasks { get; set; }
         public ProjectBoard ProjectBoard { get; set; }
+		public bool NewTaskOpen { get; set; }
+		public string NewTaskName { get; set; }
 
-    }
+	}
 }

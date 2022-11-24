@@ -15,7 +15,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddHttpClient<ISectionService, SectionService>(client =>
 {
-	client.BaseAddress = new Uri("http://10.108.137.56:5004/");
+	client.BaseAddress = new Uri("http://192.168.1.100:5004/");
 	
 });
 

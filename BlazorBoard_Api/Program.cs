@@ -3,6 +3,7 @@ using LinqToDB.AspNet;
 using LinqToDB.AspNet.Logging;
 using LinqToDB.Configuration;
 using LinqToDB.SchemaProvider;
+using Microsoft.AspNetCore.Cors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,11 +13,19 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-var MyAllowSpecficOrigins = "_myAllowSpecificOrigins";
-builder.Services.AddCors(options => 
+var policyName = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecficOrigins,
-        builder => { builder.WithOrigins("http://localhost:5068"); });
+	options.AddPolicy(name: policyName,
+					  builder =>
+					  {
+						  builder
+							//.WithOrigins("http://localhost:5068")
+							.AllowAnyMethod()
+							.AllowAnyOrigin()
+							.AllowAnyHeader();
+					  });
 });
 
 builder.Services.AddLinqToDBContext<BlazorBoardDB>((provider, options) =>
@@ -39,7 +48,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors(MyAllowSpecficOrigins);
+app.UseCors(policyName);
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
