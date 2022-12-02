@@ -207,7 +207,8 @@ else
         {
             _users = await _dataService.UserService.Get();
             _projectNames = await _dataService.GetProjects();
-            _selectedProject = _projectNames.First();
+            if(_projectNames is not null && _projectNames.Count > 0)
+                _selectedProject = _projectNames.First();
             _sections = await _dataService.GetProjectSections(_selectedProject);
             _tasks = await _dataService.GetSectionTasks(_selectedProject);
 
@@ -228,7 +229,8 @@ else
                 _sections = await _cacheService.SectionCache.GetAll();
                 _users = await _cacheService.UserCache.GetAll();
                 _projectNames = await _cacheService.GetProjects();
-                _selectedProject = _projectNames.First();
+                if (_projectNames is not null && _projectNames.Count > 0)
+                    _selectedProject = _projectNames.First();
             }
 
             _loading = false;
