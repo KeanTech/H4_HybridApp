@@ -203,26 +203,38 @@ else
     /// <returns></returns>
     protected override async Task OnInitializedAsync()
     {
-        _users = await _dataService.UserService.Get();
-        _projectNames = await _dataService.GetProjects();
-        _selectedProject = _projectNames.First();
-        _sections = await _dataService.GetProjectSections(_selectedProject);
-        _tasks = await _dataService.GetSectionTasks(_selectedProject);
-
-        if (_tasks is null && _sections is null)
+        try
         {
-            _offline = true;
-            _offlineColor = Color.Warning;
-            _offlineStatus = "Offline";
-
-            _tasks = await _cacheService.SectionTaskCache.GetAll();
-            _sections = await _cacheService.SectionCache.GetAll();
-            _users = await _cacheService.UserCache.GetAll();
-            _projectNames = await _cacheService.GetProjects();
+            _users = await _dataService.UserService.Get();
+            _projectNames = await _dataService.GetProjects();
             _selectedProject = _projectNames.First();
-        }
+            _sections = await _dataService.GetProjectSections(_selectedProject);
+            _tasks = await _dataService.GetSectionTasks(_selectedProject);
 
-        _loading = false;
+        }
+        catch (Exception)
+        {
+            // Should have been a log here to catch the errors 
+        }
+        finally
+        {
+            if (_tasks is null && _sections is null)
+            {
+                _offline = true;
+                _offlineColor = Color.Warning;
+                _offlineStatus = "Offline";
+
+                _tasks = await _cacheService.SectionTaskCache.GetAll();
+                _sections = await _cacheService.SectionCache.GetAll();
+                _users = await _cacheService.UserCache.GetAll();
+                _projectNames = await _cacheService.GetProjects();
+                _selectedProject = _projectNames.First();
+            }
+
+            _loading = false;
+        }
+        
+
     }
 
     /// <summary>

@@ -13,7 +13,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-Uri baseUri =  new Uri("http://192.168.1.100:5004/");
+Uri baseUri =  new Uri("https://192.168.1.100:7004/");
 
 builder.Services.AddMudServices();
 builder.Services.AddBlazoredLocalStorageAsSingleton();
