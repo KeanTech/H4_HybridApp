@@ -225,18 +225,18 @@ else
                 _offlineColor = Color.Warning;
                 _offlineStatus = "Offline";
 
-                _tasks = await _cacheService.SectionTaskCache.GetAll();
-                _sections = await _cacheService.SectionCache.GetAll();
                 _users = await _cacheService.UserCache.GetAll();
                 _projectNames = await _cacheService.GetProjects();
                 if (_projectNames is not null && _projectNames.Count > 0)
                     _selectedProject = _projectNames.First();
+
+                _tasks = await _cacheService.SectionTaskCache.GetAll();
+                _sections = await _cacheService.SectionCache.GetAll();
             }
 
             _loading = false;
         }
         
-
     }
 
     /// <summary>
