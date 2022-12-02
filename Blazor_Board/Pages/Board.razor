@@ -1,142 +1,524 @@
 ﻿@page "/Board"
 @using Microsoft.AspNetCore.Components
 @using System.ComponentModel.DataAnnotations
-@inject ISectionService sectionService;
 
+@inject DataService _dataService
+@inject CacheServices _cacheService
+@inject IJSRuntime _js;
 
-<MudDropContainer T="KanbanTaskItem" @ref="_dropContainer" Items="@_tasks" ItemsSelector="@((item,column) => item.Status == column)" ItemDropped="TaskUpdated" Class="d-flex flex-row">
-	<ChildContent>
-		@foreach (var item in _sections)
-		{
-			<MudPaper Elevation="0" Width="224px" MinHeight="400px" Class="pa-4 ma-4 d-flex flex-column mud-background-gray rounded-lg">
-				<MudToolBar DisableGutters="true">
-					<MudText Typo="Typo.subtitle1"><b>@item.Name</b></MudText>
-					<MudSpacer />
-					<MudMenu Icon="@Icons.Material.Rounded.MoreHoriz" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" ListClass="pa-2 d-flex flex-column" PopoverClass="mud-elevation-25">
-						<MudButton Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Outlined.Delete" OnClick="@( () => DeleteSection(item))">Delete Section</MudButton>
-						<MudButton Size="Size.Small" Color="Color.Default" StartIcon="@Icons.Rounded.Edit">Rename Section</MudButton>
-					</MudMenu>
-				</MudToolBar>
-				<MudDropZone T="KanbanTaskItem" Identifier="@item.Name" Class="mud-height-full" />
-				@if (item.NewTaskOpen)
-				{
-					<MudPaper Elevation="25" Class="pa-2 rounded-lg">
-						<MudTextField @bind-Value="item.NewTaskName" Placeholder="New Task" DisableUnderLine="true" Margin="Margin.Dense" Class="mx-2 mt-n2"></MudTextField>
-						<MudButton OnClick="@(() => AddTask(item))" Size="Size.Small" Color="Color.Primary" FullWidth="true">Add Task</MudButton>
-					</MudPaper>
-				}
-				else
-				{
-					<MudButton OnClick="@(() => item.NewTaskOpen = !item.NewTaskOpen)" StartIcon="@Icons.Filled.Add" FullWidth="true" Class="rounded-lg py-2">Add Task</MudButton>
-				}
-			</MudPaper>
-		}
-		<MudPaper Class="pa-4" Elevation="0" Width="224px">
-			
-			@if (_addSectionOpen)
-			{
-				<MudPaper Elevation="0" Width="224px" Class="pa-4 d-flex flex-column mud-background-gray rounded-lg">
-				
-					<EditForm Model="@newSectionModel" OnValidSubmit="OnValidSectionSubmit">
-					
-						<DataAnnotationsValidator />
-						<MudTextField @bind-Value="newSectionModel.Name" For="@(() => newSectionModel.Name)" Placeholder="New Section" DisableUnderLine="true"></MudTextField>
-						<MudButton ButtonType="ButtonType.Submit" Size="Size.Small" Color="Color.Primary" FullWidth="true">Add Section</MudButton>
-				
-					</EditForm>
-				
-				</MudPaper>
-			}
-			else
-			{
-				<MudButton OnClick="OpenAddNewSection" Variant="Variant.Outlined" StartIcon="@Icons.Filled.Add" Color="Color.Primary" Class="rounded-lg py-2" FullWidth="true">Add Section</MudButton>
-			}
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @if (_showDialog)
+    {
+        <Dialog DialogType="Dialog.ModalDialogType.OkCancel"
+        OnClose="OnDialogClose"
+        ToStatus="@_movedSectionTask.Key"
+        SectionTask="@_movedSectionTask.Value" />
+    }
 
-		</MudPaper>
-	</ChildContent>
-	<ItemRenderer>
-		<MudPaper Elevation="25" Class="pa-4 rounded-lg my-3">@context.Name</MudPaper>
-	</ItemRenderer>
-</MudDropContainer>
+    @if (_showCreateProjectDialog)
+    {
+        <CreateProjectDialog DialogType="CreateProjectDialog.ModalDialogType.OkCancel"
+                     OnClose="CreateProject" />
+
+    }
+    <MudStack>
+        <MudExpansionPanels MultiExpansion="true">
+
+            <MudExpansionPanel Text="Options" Class="brown darken-3 brown-text text-lighten-3" Style="width:450px;" MaxHeight="350">
+
+                <MudStack Row="true">
+                    <MudButton ButtonType="ButtonType.Button" OnClick="@(() => SyncData())" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Filled.Sync">Sync</MudButton>
+                    <MudButton ButtonType="ButtonType.Button" OnClick="() => OfflineMode()" Variant="Variant.Filled" Color="@_offlineColor" StartIcon="@Icons.Filled.OfflineBolt" DisableRipple="true">@_offlineStatus</MudButton>
+                    <MudButton ButtonType="ButtonType.Button" OnClick="() => Reset()" Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Outlined.Clear">Clear Board</MudButton>
+
+                </MudStack>
+
+            </MudExpansionPanel>
+
+            <MudExpansionPanel Class="brown darken-3 brown-text text-lighten-3" Style="width:450px;" MaxHeight="500" Text="@_selectedProject">
+                <MudStack Row="true">
+
+                    <DropDown TItem="string" OnSelected="ProjectSelected">
+                        <InitialTip>Select Project</InitialTip>
+                        <ChildContent>
+                            @foreach (var item in _projectNames)
+                            {
+                                <DropDownItem Item="@item">@item</DropDownItem>
+                            }
+                        </ChildContent>
+                    </DropDown>
+                    <MudButton ButtonType="ButtonType.Button" OnClick="() => ShowProjectDialog()" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Outlined.Add">Create new project</MudButton>
+                </MudStack>
+
+            </MudExpansionPanel>
+
+        </MudExpansionPanels>
+    </MudStack>
+
+    <MudDropContainer T="SectionTask" @ref="_dropContainer" Items="@_tasks" ItemsSelector="@((item,column) => item.Status == column)" ItemDropped="TaskUpdated" Class="d-flex flex-row">
+        <ChildContent>
+            @foreach (var item in _sections)
+            {
+                @if (_showAssignedDialog)
+                {
+                    <AssignToDialog DialogType="AssignToDialog.ModalDialogType.OkCancel" Users="_users" SectionTask="_selectedTaskToAssignUser" OnClose="AssignedToDialogClose" />
+
+                }
+
+                <MudPaper Elevation="0" Width="224px" MinHeight="400px" Class="pa-4 ma-4 d-flex flex-column rounded-lg brown-text text-lighten-4 brown lighten-1">
+                    <MudToolBar DisableGutters="true">
+
+                        @if (item.Edit)
+                        {
+                            <MudPaper Elevation="25" Class=" rounded-lg brown">
+
+                                <MudIconButton @onclick="() => item.Edit = false" IconColor="Color.Warning" Size="Size.Small" Icon="@Icons.Rounded.Close" Class=""></MudIconButton>
+                                <MudButton OnClick="@(() => DeleteSection(item))" Variant="Variant.Filled" Size="Size.Small" Class="pa-1 my-1 brown darken-3 brown-text text-lighten-3" FullWidth="true">Delete Section</MudButton>
+
+                            </MudPaper>
+                        }
+                        else
+                        {
+                            <MudButton OnClick="@(() => item.Edit = !item.Edit)" StartIcon="@Icons.Filled.Add" FullWidth="true" Class="brown darken-3 brown-text text-lighten-4 rounded-lg py-2">Edit</MudButton>
+                        }
+
+                    </MudToolBar>
+                    <MudPaper Class="brown lighten-4 text-center">
+
+                        <MudText Typo="Typo.subtitle1"><b>@item.Status</b></MudText>
+                        <MudSpacer />
+
+                    </MudPaper>
+
+                    <MudDropZone T="SectionTask" Identifier="@item.Status" Class="mud-height-full" />
+                    @if (item.NewTaskOpen)
+                    {
+                        <MudPaper Elevation="25" Class="pa-2 rounded-lg brown">
+                            <MudIconButton @onclick="() => item.NewTaskOpen = false" IconColor="Color.Warning" Size="Size.Small" Icon="@Icons.Rounded.Close" Class="" DisableRipple="true"></MudIconButton>
+                            <MudTextField @bind-Value="item.NewTaskName" Placeholder="New Task" DisableUnderLine="true" Margin="Margin.Dense" Class="mx-3 mt-n0 brown-text text-lighten-5 placeholder "></MudTextField>
+                            <MudButton OnClick="@(() => AddTask(item))" Variant="Variant.Filled" Size="Size.Small" Class="pa-1 my-1 brown darken-3 brown-text text-lighten-3" FullWidth="true">Add Task</MudButton>
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <MudButton OnClick="@(() => item.NewTaskOpen = !item.NewTaskOpen)" DisableRipple="true" StartIcon="@Icons.Filled.Add" FullWidth="true" Class="brown darken-3 brown-text text-lighten-4 rounded-lg py-2">Add Task</MudButton>
+                    }
+                </MudPaper>
+            }
+            <MudPaper Class="pa-4 brown mt-4 lighten-1" Elevation="0" Width="224px" Height="400px">
+
+                @if (_addSectionOpen)
+                {
+                    <MudPaper Elevation="0" Width="224px" Class="brown pa-4 d-flex flex-column rounded-lg">
+
+                        <EditForm Model="@newSectionModel" class="" OnValidSubmit="OnValidSectionSubmit">
+
+                            <DataAnnotationsValidator />
+                            <MudIconButton @onclick="() => _addSectionOpen = false" IconColor="Color.Warning" Size="Size.Small" Icon="@Icons.Rounded.Close" DisableRipple="true" Class=""></MudIconButton>
+                            <MudTextField @bind-Value="newSectionModel.Status" For="@(() => newSectionModel.Status)" Placeholder="New Section" DisableUnderLine="true" Class="brown-text text-lighten-5 placeholder my-1"></MudTextField>
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Size="Size.Small" Class="brown darken-3 brown-text text-lighten-3" FullWidth="true">Add Section</MudButton>
+
+                        </EditForm>
+
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudButton OnClick="OpenAddNewSection" @oninvalid="() => _addSectionOpen = false " Variant="Variant.Filled" DisableRipple="true" StartIcon="@Icons.Filled.Add" Class="brown darken-3 brown-text text-lighten-4 rounded-lg py-2" FullWidth="true">Add Section</MudButton>
+                }
+
+            </MudPaper>
+        </ChildContent>
+        <ItemRenderer>
+            <MudPaper Elevation="25" Class="pa-6 rounded-lg my-3 brown darken-2">
+                <MudCard Class="brown darken-3 brown-text text-lighten-4">
+
+                    <MudCardHeader>Status:</MudCardHeader>
+                    <MudCardContent>
+                        <MudText>@context.Status</MudText>
+                    </MudCardContent>
+
+                </MudCard>
+
+                <MudCard Class="brown darken-3 brown-text text-lighten-4">
+
+                    <MudCardHeader>Description:</MudCardHeader>
+                    <MudCardContent>
+                        <MudText>@context.Text</MudText>
+                    </MudCardContent>
+
+                </MudCard>
+
+                <MudCard Class="brown darken-3 brown-text text-lighten-4">
+
+                    <MudButton ButtonType="ButtonType.Button" DisableRipple="true" Variant="Variant.Filled" OnClick="(() => AssignToSectionTask(context) )" Class="brown darken-1 brown-text text-lighten-3">Assign User</MudButton>
+                    <MudCardHeader Class="">Assigned to:</MudCardHeader>
+                    <MudCardContent>
+                        <MudText>@(_users.FirstOrDefault(x => x.Id == context.UserId)?.Name)</MudText>
+                        </MudCardContent>
+
+                    </MudCard>
+                </MudPaper>
+            </ItemRenderer>
+        </MudDropContainer>
+
+}
+
 @code {
+    #region Fields
 
-	private MudDropContainer<KanbanTaskItem>? _dropContainer;
-	KanbanForm newSectionModel = new KanbanForm();
-	private bool _addSectionOpen;
+    private MudDropContainer<SectionTask>? _dropContainer;
+    private Section newSectionModel = new Section();
+    private bool _addSectionOpen;
+    private bool _loading = true;
+    private bool _offline = false;
+    private Color _offlineColor = Color.Success;
+    private string _offlineStatus = "Online";
+    private bool _showDialog = false;
+    private bool _showAssignedDialog = false;
+    private bool _showCreateProjectDialog = false;
+    private SectionTask _selectedTaskToAssignUser;
+    private string _selectedProject = string.Empty;
 
-	private List<Section> _sections = new List<Section>();
-	/* Setup for board  */
-	private List<KanbanSection> _Kansections = new()
-	{
-			new KanbanSection("To Do", false, String.Empty),
-			new KanbanSection("In Process", false, String.Empty),
-			new KanbanSection("Done", false, String.Empty),
-	};
+    private KeyValuePair<string, SectionTask> _movedSectionTask;
+    /* Setup for board  */
+    private List<Section> _sections = new List<Section>();
+    private List<SectionTask> _tasks = new List<SectionTask>();
+    private List<string> _projectNames = new List<string>();
+    private List<User> _users = new List<User>();
 
-	private List<KanbanTaskItem> _tasks = new()
-		{
-			new KanbanTaskItem("Write unit test", "To Do"),
-			new KanbanTaskItem("Some docu stuff", "To Do"),
-			new KanbanTaskItem("Walking the dog", "To Do"),
-		};
+    #endregion
 
+    #region Page Functions
 
-	protected override async Task OnInitializedAsync()
-	{
-		_sections = await sectionService.GetSections();
+    /// <summary>
+    /// This method makes sure that there is no null exceptions
+    /// it will set the offline variable if there is no data or connection to the database
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await _dataService.UserService.Get();
+        _projectNames = await _dataService.GetProjects();
+        _selectedProject = _projectNames.First();
+        _sections = await _dataService.GetProjectSections(_selectedProject);
+        _tasks = await _dataService.GetSectionTasks(_selectedProject);
 
-	}
-	/* handling board events */
-	private void TaskUpdated(MudItemDropInfo<KanbanTaskItem> info)
-	{
-		info.Item.Status = info.DropzoneIdentifier;
-	}
+        if (_tasks is null && _sections is null)
+        {
+            _offline = true;
+            _offlineColor = Color.Warning;
+            _offlineStatus = "Offline";
 
-	private void OnValidSectionSubmit(EditContext context)
-	{
+            _tasks = await _cacheService.SectionTaskCache.GetAll();
+            _sections = await _cacheService.SectionCache.GetAll();
+            _users = await _cacheService.UserCache.GetAll();
+            _projectNames = await _cacheService.GetProjects();
+            _selectedProject = _projectNames.First();
+        }
 
-		_sections.Add(new Section() { Name = newSectionModel.Name, NewTaskOpen = false, NewTaskName = String.Empty });
-		newSectionModel.Name = string.Empty;
-		_addSectionOpen = false;
-	}
+        _loading = false;
+    }
 
-	private void OpenAddNewSection()
-	{
-		_addSectionOpen = true;
-	}
+    /// <summary>
+    /// Populates the lists used in the board if there is no database connected it will load from local storage
+    /// <para>
+    /// If local storage is empty it will set the list to 0, there is no need to set the offline varable for this to work  
+    /// </para>
+    /// </summary>
+    private async void ReloadData()
+    {
+        if (_offline)
+        {
+            _users = await _cacheService.UserCache.GetAll() ?? new List<User>();
+            _projectNames = await _cacheService.GetProjects() ?? new List<string>();
+            _selectedProject = _projectNames?.First() ?? "";
+            _sections = await _cacheService.GetProjectSections(_selectedProject) ?? new List<Section>();
+            _tasks = await _cacheService.GetSectionTasks(_selectedProject) ?? new List<SectionTask>();
 
-	private void AddTask(Section section)
-	{
-		_tasks.Add(new KanbanTaskItem(section.NewTaskName, section.Name));
-		section.NewTaskName = string.Empty;
-		section.NewTaskOpen = false;
-		
-		if(_dropContainer != null)
-			_dropContainer.Refresh();
-	}
+            StateHasChanged();
+            _dropContainer?.Refresh();
+            return;
+        }
 
-	private void DeleteSection(Section section)
-	{
-		if (_sections.Count == 1)
-		{
-			_tasks.Clear();
-			_sections.Clear();
-		}
-		else
-		{
-			int newIndex = _sections.IndexOf(section) - 1;
-			if (newIndex < 0)
-			{
-				newIndex = 0;
-			}
+        _users = await _dataService.UserService.Get() ?? new List<User>();
+        _projectNames = await _dataService.GetProjects() ?? new List<string>();
+        _selectedProject = _projectNames?.First() ?? "";
+        _sections = await _dataService.GetProjectSections(_selectedProject) ?? new List<Section>();
+        _tasks = await _dataService.GetSectionTasks(_selectedProject) ?? new List<SectionTask>();
 
-			_sections.Remove(section);
+        StateHasChanged();
+        _dropContainer?.Refresh();
+    }
 
-			var tasks = _tasks.Where(x => x.Status == section.Name);
-			foreach (var item in tasks)
-			{
-				item.Status = _sections[newIndex].Name;
-			}
-		}
-	}
+    /// <summary>
+    /// Sets the offline variable 
+    /// 
+    /// Triggered by button event and will reload the data to fit the offline state
+    /// </summary>
+    private void OfflineMode()
+    {
+        if (_offline)
+        {
+            _offline = false;
+            _offlineColor = Color.Success;
+            _offlineStatus = "Online";
+
+            ReloadData();
+        }
+
+        _offline = true;
+        _offlineColor = Color.Warning;
+        _offlineStatus = "Offline";
+
+        ReloadData();
+    }
+
+    /// <summary>
+    /// Used to trigger <see cref="AssignToDialog"/> and set the _selectedTaskToAssignUser
+    /// </summary>
+    /// <param name="sectionTask">The param is used to set a local variable used to initialize the component</param>
+    private void AssignToSectionTask(SectionTask sectionTask)
+    {
+        _selectedTaskToAssignUser = sectionTask;
+        _showAssignedDialog = true;
+    }
+
+    /// <summary>
+    /// This method is triggered by a callback event from <see cref="AssignToDialog"/> form
+    ///
+    /// <para>
+    /// Sets the selected user from the dialog to the section chosen
+    /// </para>
+    /// </summary>
+    /// <param name="selectedUser">This param comes from the <see cref="AssignToDialog.OnClose"/> method wich triggers callback event</param>
+    private void AssignedToDialogClose(KeyValuePair<SectionTask, User> selectedUser)
+    {
+        _showAssignedDialog = false;
+        _dropContainer.Refresh();
+    }
+
+    /// <summary>
+    /// Triggers from a dropdown on select event
+    /// Used to reload the data to fit the project name
+    /// </summary>
+    /// <param name="projectName">Name of the project that user wants to see</param>
+    private void ProjectSelected(string projectName)
+    {
+        _selectedProject = projectName;
+        ReloadData();
+    }
+
+    /// <summary>
+    /// Triggered from <see cref="CreateProjectDialog.OnClose"/> event
+    /// 
+    /// <para>Creates a standard Section Template to match the project name</para>
+    /// </summary>
+    /// <param name="anwser">the anwser param is the users chosen project name and a verification to manage regret of the action</param>
+    private void CreateProject(KeyValuePair<string, bool> anwser)
+    {
+        if (anwser.Value == false)
+        {
+            _showCreateProjectDialog = anwser.Value;
+            return;
+        }
+
+        List<Section> SectionTemplate = new List<Section>()
+        {
+            new Section(){ Status = "Todo", ProjectName = anwser.Key },
+            new Section(){ Status = "In Progress", ProjectName = anwser.Key },
+            new Section(){ Status = "Done", ProjectName = anwser.Key }
+        };
+
+        if (_offline)
+            _cacheService.SectionCache.AddAll(SectionTemplate);
+        else
+            _dataService.SectionService.Create(SectionTemplate);
+
+        ReloadData();
+        StateHasChanged();
+        _showCreateProjectDialog = false;
+    }
+
+    /// <summary>
+    /// Triggers the <see cref="CreateProjectDialog"/> use on a button click event
+    /// </summary>
+    private void ShowProjectDialog()
+    {
+        _showCreateProjectDialog = true;
+    }
+
+    /// <summary>
+    /// Sets the board data to 0 but not the projects
+    /// 
+    /// <para>Triggers an ui update after clear</para>
+    /// </summary>
+    private void Reset()
+    {
+        _sections.Clear();
+        _tasks.Clear();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Didn't have enugh time to finish up this feature
+    /// </summary>
+    private async void SyncData()
+    {
+
+    }
+
+    /// <summary>
+    /// Gets triggered by the <see cref="Dialog.OnClose"/> event to confirm or redo the users action
+    /// </summary>
+    /// <param name="anwser">Comes from the callback event</param>
+    private void OnDialogClose(bool anwser)
+    {
+        if (_movedSectionTask.Key is not null && _movedSectionTask.Value is not null)
+        {
+            var task = _tasks.Find(x => x.Text == _movedSectionTask.Value.Text);
+            if (task is not null && anwser == false)
+                task.Status = _movedSectionTask.Value.Status;
+        }
+
+        _showDialog = false;
+        _dropContainer.Refresh();
+    }
+    #endregion
+
+    #region Board Functions
+
+    /// <summary>
+    /// Triggered by Drag And Drop event to change the sectionTask status to the sections status
+    ///
+    /// <para>
+    /// <example>
+    /// <code>
+    /// SectionTask task = new SectionTask();
+    /// task.Status = "Todo";
+    /// 
+    /// Section section = new Section();
+    /// section.Status = "Done";
+    /// 
+    /// task.Status = section.Status;
+    /// </code> 
+    /// </example> 
+    /// </para>
+    /// </summary>
+    /// <param name="info">info comes from <see cref="MudItemDropInfo{T}"/> in this case <see cref="SectionTask"/></param>
+    private void TaskUpdated(MudItemDropInfo<SectionTask> info)
+    {
+        if (info.Item.Status == _sections.Last().Status)
+        {
+            SectionTask task = new SectionTask();
+            task.Status = info.Item.Status;
+            task.Text = info.Item.Text;
+
+            _movedSectionTask = new KeyValuePair<string, SectionTask>(info.DropzoneIdentifier, task);
+            _showDialog = true;
+        }
+
+        string status = info.DropzoneIdentifier;
+        info.Item.Status = info.DropzoneIdentifier;
+
+        if (_offline)
+            _cacheService.SectionTaskCache.Update(info.Item);
+        else
+            _dataService.SectionTaskService.Update(info.Item);
+
+        _dropContainer.Refresh();
+
+    }
+
+    /// <summary>
+    /// Creates a new Section and adds it to the local Sections list <see cref="_sections"/>
+    /// </summary>
+    /// <param name="context">The context is the Form use to validate the data</param>
+    private async void OnValidSectionSubmit(EditContext context)
+    {
+        var valid = context.Validate();
+        if (valid == false)
+            return;
+
+        var section = new Section()
+            {
+                Status = newSectionModel.Status,
+                ProjectName = newSectionModel.NewProjectName,
+                NewTaskOpen = false,
+                NewTaskName = String.Empty,
+                NewProjectName = string.Empty
+            };
+
+        if (_offline)
+            _cacheService.SectionCache.Add(section);
+        else
+            _dataService.SectionService.Create(section);
+
+        _sections.Add(section);
+        newSectionModel.Status = string.Empty;
+        newSectionModel.NewProjectName = string.Empty;
+        _addSectionOpen = false;
+    }
+
+    private void OpenAddNewSection()
+    {
+        _addSectionOpen = true;
+    }
+
+    /// <summary>
+    /// Adds a new Task to the given Section in the param
+    /// </summary>
+    /// <param name="section">The selected section from the AddTask button event</param>
+    private void AddTask(Section section)
+    {
+        _tasks.Add(new SectionTask() { Text = section.NewTaskName, Status = section.Status, SectionId = section.Id });
+
+        section.NewTaskName = string.Empty;
+        section.NewTaskOpen = false;
+
+        if (_dropContainer != null)
+            _dropContainer.Refresh();
+    }
+
+    /// <summary>
+    /// Deletes the given section and moves the tasks from the section to another one 
+    /// </summary>
+    /// <param name="section">Section that will get deleted</param>
+    private void DeleteSection(Section section)
+    {
+        if (_sections.Count == 1)
+        {
+            _tasks.Clear();
+            _sections.Clear();
+        }
+        else
+        {
+            int newIndex = _sections.IndexOf(section) - 1;
+            if (newIndex < 0)
+            {
+                newIndex = 0;
+            }
+
+            _sections.Remove(section);
+
+            if (_offline)
+                _cacheService.SectionCache.Remove(section);
+            else
+                _dataService.SectionService.Delete(section);
+
+            var tasks = _tasks.Where(x => x.Status == section.Status);
+            foreach (var item in tasks)
+            {
+                item.Status = _sections[newIndex].Status;
+            }
+        }
+    }
+
+    #endregion
+
 }

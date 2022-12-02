@@ -31,15 +31,26 @@ namespace BlazorBoard_Api.Controllers
 		[Route("Get/{id}")]
 		public IActionResult Get(int id)
 		{
-			var sections = _db.Sections.Where(x => x.Id == id);
+			var section = _db.Sections.FirstOrDefault(x => x.Id == id);
 
-			if (sections.Count() > 0)
-				return Ok(sections);
+			if (section is not null)
+				return Ok(section);
 
 			return NotFound();
 		}
-		
-		[HttpPost]
+
+        [HttpGet]
+        [Route("GetByStatus/{status}")]
+        public IActionResult Get(string status)
+        {
+			var section = _db.Sections.FindBySectionStatus(status);
+			if(section is null)
+				return NotFound();
+
+            return Ok(section);
+        }
+
+        [HttpPost]
 		[Route("Delete")]
 		public IActionResult Delete(Section section)
 		{
@@ -57,7 +68,7 @@ namespace BlazorBoard_Api.Controllers
 
 		[HttpPost]
 		[Route("Create")]
-		public IActionResult CreateSection(Section section)
+		public IActionResult Create(Section section)
 		{
 			try
 			{
@@ -73,7 +84,7 @@ namespace BlazorBoard_Api.Controllers
 
 		[HttpPost]
 		[Route("Update")]
-		public IActionResult UpdateSection(Section section)
+		public IActionResult Update(Section section)
 		{
 			try
 			{

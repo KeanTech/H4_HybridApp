@@ -1,0 +1,76 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content brown darken-3 brown-text text-lighten-3">
+            <div class="modal-header">
+                <h4 class="modal-title">Dialog</h4>
+                <button type="button" class="close" @onclick="ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body brown darken-3 brown-text text-lighten-3">
+                <form>
+                    <DropDown TItem="User" OnSelected="OnSelectedUser">
+                        <InitialTip>Select User</InitialTip>
+                        <ChildContent>
+                            @foreach (var user in Users)
+                            {
+                                <DropDownItem Item="user">@user.Name</DropDownItem>
+                            }
+                        </ChildContent>
+                    </DropDown>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                @switch (DialogType)
+                {
+                    case ModalDialogType.Ok:
+                        <MudButton ButtonType="ButtonType.Button" Color="Color.Warning" Variant="Variant.Filled" @onclick=@ModalOk>OK</MudButton>
+                        break;
+                    case ModalDialogType.OkCancel:
+                        <MudButton ButtonType="ButtonType.Button" Color="Color.Success" Variant="Variant.Filled" @onclick="@ModalCancel">Cancel</MudButton>
+                        <MudButton ButtonType="ButtonType.Button" Color="Color.Warning" Variant="Variant.Filled" @onclick=@ModalOk>OK</MudButton>
+                        break;
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public EventCallback<KeyValuePair<SectionTask, User>> OnClose { get; set; }
+
+    [Parameter]
+    public List<User> Users { get; set; }
+
+    [Parameter]
+    public ModalDialogType DialogType { get; set; }
+
+    [Parameter]
+    public SectionTask SectionTask { get; set; }
+
+    private User _selectedUser;
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(new KeyValuePair<SectionTask, User>(SectionTask, _selectedUser));
+    }
+
+    private Task ModalOk()
+    {
+        SectionTask.UserId = _selectedUser.Id;
+        return OnClose.InvokeAsync(new KeyValuePair<SectionTask, User>(SectionTask, _selectedUser));
+    }
+
+    private void OnSelectedUser(User user)
+    {
+        _selectedUser = user;    
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+    }
+
+}

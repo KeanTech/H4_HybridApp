@@ -1,24 +1,25 @@
 ﻿using Blazor_Board.Models.Data;
 using System.Net.Http.Json;
 using System.Text.Json;
+
 namespace Blazor_Board.Core.Services
 {
-    public class SectionService : IDataService<Section>
+    public class UserService : IDataService<User>
     {
         private readonly HttpClient _client;
-        private readonly string urlPath = "Section/";
+        private readonly string urlPath = "User/";
         public Exception? Error { get; set; }
 
-        public SectionService(HttpClient client)
+        public UserService(HttpClient client)
         {
             _client = client;
         }
 
-        public async void Create(Section section)
+        public async void Create(User user)
         {
             try
             {
-                var result = await _client.PostAsJsonAsync(urlPath + "Create", section);
+                var result = await _client.PostAsJsonAsync(urlPath + "Create", user);
             }
             catch (Exception ex)
             {
@@ -29,14 +30,14 @@ namespace Blazor_Board.Core.Services
         /// <summary>
         /// Should have been a bulk insert but had to wait because of time presure
         /// </summary>
-        /// <param name="sections"></param>
-        public async void Create(List<Section> sections)
+        /// <param name="users"></param>
+        public async void Create(List<User> users)
         {
             try
             {
-                foreach (var section in sections)
+                foreach (var user in users)
                 {
-                    var result = await _client.PostAsJsonAsync(urlPath + "Create", section);
+                    var result = await _client.PostAsJsonAsync(urlPath + "Create", user);
                 }
             }
             catch (Exception ex)
@@ -45,13 +46,13 @@ namespace Blazor_Board.Core.Services
             }
         }
 
-        public async void Delete(Section section)
+        public async void Delete(User user)
         {
-            if (section is not null)
+            if (user is not null)
             {
                 try
                 {
-                    var result = await _client.PostAsJsonAsync(urlPath + $"Delete", section);
+                    var result = await _client.PostAsJsonAsync(urlPath + $"Delete", user);
                 }
                 catch (Exception ex)
                 {
@@ -60,13 +61,13 @@ namespace Blazor_Board.Core.Services
             }
         }
 
-        public async Task<Section> Get(int id)
+        public async Task<User> Get(int id)
         {
             if (id > 0)
             {
                 try
                 {
-                    var result = await _client.GetFromJsonAsync<Section>(urlPath + $"Get/{id}");
+                    var result = await _client.GetFromJsonAsync<User>(urlPath + $"Get/{id}");
 
                     if (result is not null)
                         return result;
@@ -77,16 +78,16 @@ namespace Blazor_Board.Core.Services
                 }
             }
 
-            return new Section();
+            return new User();
         }
 
-        public async Task<Section> Get(string name)
+        public async Task<User> Get(string name)
         {
             if (name is not null)
             {
                 try
                 {
-                    var result = await _client.GetFromJsonAsync<Section>(urlPath + $"GetByName/{name}");
+                    var result = await _client.GetFromJsonAsync<User>(urlPath + $"GetByName/{name}");
 
                     if (result is not null)
                         return result;
@@ -97,15 +98,15 @@ namespace Blazor_Board.Core.Services
                 }
             }
 
-            return new Section();
+            return new User();
         }
 
-        public async Task<List<Section>> Get()
+        public async Task<List<User>> Get()
         {
 
             try
             {
-                var result = await _client.GetFromJsonAsync<List<Section>>(urlPath + "Get");
+                var result = await _client.GetFromJsonAsync<List<User>>(urlPath + "Get");
 
                 if (result != null)
                     return result;
@@ -115,14 +116,14 @@ namespace Blazor_Board.Core.Services
                 Error = ex;
             }
 
-            return new List<Section> { };
+            return new List<User>();
         }
 
-        public async void Update(Section section)
+        public async void Update(User user)
         {
             try
             {
-                var result = await _client.PostAsJsonAsync(urlPath + "Update", section);
+                var result = await _client.PostAsJsonAsync(urlPath + "Update", user);
             }
             catch (Exception ex)
             {

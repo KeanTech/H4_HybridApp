@@ -1,0 +1,58 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content brown darken-3 brown-text text-lighten-3">
+            <div class="modal-header">
+                <h4 class="modal-title">Dialog</h4>
+                <button type="button" class="close" @onclick="ModalCancel">&times;</button>
+            </div>
+            <div class="modal-body red darken-3">
+                <form>
+                    <MudText Class="fw-bold">Are you sure you want to move @SectionTask.Text from @SectionTask.Status to @ToStatus !! </MudText>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                @switch (DialogType)
+                {
+                    case ModalDialogType.Ok:
+                        <MudButton ButtonType="ButtonType.Button" Color="Color.Warning" Variant="Variant.Filled" @onclick=@ModalOk>OK</MudButton>
+                        break;
+                    case ModalDialogType.OkCancel:
+                        <MudButton ButtonType="ButtonType.Button" Color="Color.Success" Variant="Variant.Filled" @onclick="@ModalCancel">Cancel</MudButton>
+                        <MudButton ButtonType="ButtonType.Button" Color="Color.Warning" Variant="Variant.Filled" @onclick=@ModalOk>OK</MudButton>
+                        break;
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public SectionTask SectionTask { get; set; }
+
+    [Parameter]
+    public string ToStatus { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public ModalDialogType DialogType { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+    }
+}

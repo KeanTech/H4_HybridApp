@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@typeparam TItem
+<a class="dropdown-item" Item="@Item" @onclick="e=> Dropdown.HandleSelect(Item, ChildContent)">@ChildContent(Item)</a>
+
+@code {
+    
+    /// <summary>
+    /// The dropdown parameter takes in <see cref="DropDown{TItem}"/> so it can be selected through the <see cref="DropDown{TItem}.HandleSelect(TItem, RenderFragment{TItem})"/> method>
+    /// <para>This cannot be null else the component wont work</para>
+    /// </summary>
+    ///<returns></returns>
+    [CascadingParameter(Name = "Dropdown")]
+    public DropDown<TItem>? Dropdown { get; set; }
+
+    /// <summary>
+    /// The Item parameter represent the object
+    /// <para>To define what type of object <see cref="DropDown{TItem}.DropDown"/> its a cascading value wich means it points to <see cref="Dropdown"/></para>
+    /// <para>This cannot be null else the component wont work</para>
+    /// </summary>
+    ///<returns></returns>
+    [Parameter]
+    public TItem? Item { get; set; }
+    /// <summary>
+    /// The childcontent represent the dropdown box where the items/data for the dropdown is shown
+    /// <para>This cannot be null else the component wont work</para>
+    /// </summary>
+    ///<returns></returns>
+    [Parameter]
+    public RenderFragment<TItem>? ChildContent { get; set; }
+}

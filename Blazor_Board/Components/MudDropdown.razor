@@ -1,0 +1,25 @@
+﻿@typeparam T
+
+<MudSelect T="T" FullWidth="false" @bind-Value="selected" SelectedValuesChanged="Selected" Variant="Variant.Filled" AnchorOrigin="Origin.BottomCenter">
+    @foreach (var value in Values)
+    {
+        <MudSelectItem Value="@(value)" />
+    }
+</MudSelect>
+
+@code {
+
+    [Parameter]
+    public List<T> Values { get; set; }
+
+    [Parameter]
+    public EventCallback<T> ReturnItem { get; set; }
+
+    private T selected;
+
+    private Task Selected()
+    {
+        return ReturnItem.InvokeAsync(selected);
+    }
+
+}
